@@ -1,0 +1,23 @@
+trigger:
+- main  # or your actual branch name
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  azureServiceConnection: 'OfirRG-Service-Connection'
+  resourceGroupName: 'Ofir-RG'
+  location: 'northeurope'
+
+steps:
+- task: AzureResourceManagerTemplateDeployment@3
+  inputs:
+    deploymentScope: 'Resource Group'
+    azureResourceManagerConnection: '$(azureServiceConnection)'
+    action: 'Create Or Update Resource Group'
+    resourceGroupName: '$(resourceGroupName)'
+    location: '$(location)'
+    templateLocation: 'Linked artifact'
+    csmFile: 'template.json'
+    csmParametersFile: 'parameters.json'
+    deploymentMode: 'Incremental'
