@@ -11,7 +11,9 @@
     "tagOwner": {
       "value": "test"
     },
-
+    "startupScript": {
+      "value": "IyEvYmluL2Jhc2gKCiMgV2FpdCB1bnRpbCBEb2NrZXIgaXMgcmVhZHkKdW50aWwgZG9ja2VyIGluZm8gPi9kZXYvbnVsbCAyPiYxOyBkbwogIGVjaG8gIltJTkZPXSBXYWl0aW5nIGZvciBEb2NrZXIuLi4iCiAgc2xlZXAgMgpkb25lCgojIFB1bGwgdGhlIGxhdGVzdCBpbWFnZQpkb2NrZXIgcHVsbCBvZmlyZ2Fhc2gvc2lsZW5jZS1yZW1vdmVyOmxhdGVzdAoKIyBTdG9wL3JlbW92ZSBhbnkgcHJldmlvdXMgY29udGFpbmVyCmRvY2tlciBzdG9wIHNpbGVuY2UtcmVtb3ZlciB8fCB0cnVlCmRvY2tlciBybSBzaWxlbmNlLXJlbW92ZXIgfHwgdHJ1ZQoKIyBSdW4gdGhlIGNvbnRhaW5lcgpkb2NrZXIgcnVuIC1kIFwKICAtLW5hbWUgc2lsZW5jZS1yZW1vdmVyIFwKICAtcCA4MDo4MCAtcCA0NDM6NDQzIFwKICAtdiBjZXJ0Ym90LWV0YzovZXRjL2xldHNlbmNyeXB0OnJvIFwKICAtdiBjZXJ0Ym90LXZhcjovdmFyL2xpYi9sZXRzZW5jcnlwdCBcCiAgb2ZpcmdhYXNoL3NpbGVuY2UtcmVtb3ZlcjpsYXRlc3QKCg=="
+    },
     "networkSecurityGroupName": {
       "value": "ofirVM-nsg"
     },
@@ -65,7 +67,9 @@
       "value": "ofirVM-vnet"
     },
     "addressPrefixes": {
-      "value": ["10.0.0.0/16"]
+      "value": [
+        "10.0.0.0/16"
+      ]
     },
     "subnets": {
       "value": [
