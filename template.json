@@ -224,8 +224,7 @@
                 "rebootSetting": "[parameters('rebootSetting')]"
               }
             }
-          },
-          "customData": "[base64(parameters('startupScript'))]"
+          }
         }
       },
       "placement": {
