@@ -2,6 +2,12 @@
     "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
+        "resourceTags": {
+        "type": "object",
+        "defaultValue": {
+            "Type": "one-time"
+        }
+        },
         "location": {
             "type": "string"
         },
@@ -91,80 +97,82 @@
             "type": "Microsoft.Storage/storageAccounts",
             "apiVersion": "2023-05-01",
             "location": "[parameters('location')]",
+            "tags": "[parameters('resourceTags')]",
             "properties": {
-                "minimumTlsVersion": "[parameters('minimumTlsVersion')]",
-                "supportsHttpsTrafficOnly": "[parameters('supportsHttpsTrafficOnly')]",
-                "allowBlobPublicAccess": "[parameters('allowBlobPublicAccess')]",
-                "allowSharedKeyAccess": "[parameters('allowSharedKeyAccess')]",
-                "defaultToOAuthAuthentication": "[parameters('defaultOAuth')]",
-                "accessTier": "[parameters('accessTier')]",
-                "publicNetworkAccess": "[parameters('publicNetworkAccess')]",
-                "allowCrossTenantReplication": "[parameters('allowCrossTenantReplication')]",
-                "networkAcls": {
-                    "bypass": "[parameters('networkAclsBypass')]",
-                    "defaultAction": "[parameters('networkAclsDefaultAction')]",
-                    "ipRules": "[parameters('networkAclsIpRules')]"
+            "minimumTlsVersion": "[parameters('minimumTlsVersion')]",
+            "supportsHttpsTrafficOnly": "[parameters('supportsHttpsTrafficOnly')]",
+            "allowBlobPublicAccess": "[parameters('allowBlobPublicAccess')]",
+            "allowSharedKeyAccess": "[parameters('allowSharedKeyAccess')]",
+            "defaultToOAuthAuthentication": "[parameters('defaultOAuth')]",
+            "accessTier": "[parameters('accessTier')]",
+            "publicNetworkAccess": "[parameters('publicNetworkAccess')]",
+            "allowCrossTenantReplication": "[parameters('allowCrossTenantReplication')]",
+            "networkAcls": {
+                "bypass": "[parameters('networkAclsBypass')]",
+                "defaultAction": "[parameters('networkAclsDefaultAction')]",
+                "ipRules": "[parameters('networkAclsIpRules')]"
+            },
+            "dnsEndpointType": "[parameters('dnsEndpointType')]",
+            "largeFileSharesState": "[parameters('largeFileSharesState')]",
+            "encryption": {
+                "keySource": "[parameters('keySource')]",
+                "services": {
+                "blob": {
+                    "enabled": "[parameters('encryptionEnabled')]"
                 },
-                "dnsEndpointType": "[parameters('dnsEndpointType')]",
-                "largeFileSharesState": "[parameters('largeFileSharesState')]",
-                "encryption": {
-                    "keySource": "[parameters('keySource')]",
-                    "services": {
-                        "blob": {
-                            "enabled": "[parameters('encryptionEnabled')]"
-                        },
-                        "file": {
-                            "enabled": "[parameters('encryptionEnabled')]"
-                        },
-                        "table": {
-                            "enabled": "[parameters('encryptionEnabled')]"
-                        },
-                        "queue": {
-                            "enabled": "[parameters('encryptionEnabled')]"
-                        }
-                    },
-                    "requireInfrastructureEncryption": "[parameters('infrastructureEncryptionEnabled')]"
+                "file": {
+                    "enabled": "[parameters('encryptionEnabled')]"
+                },
+                "table": {
+                    "enabled": "[parameters('encryptionEnabled')]"
+                },
+                "queue": {
+                    "enabled": "[parameters('encryptionEnabled')]"
                 }
+                },
+                "requireInfrastructureEncryption": "[parameters('infrastructureEncryptionEnabled')]"
+            }
             },
             "dependsOn": [],
             "sku": {
-                "name": "[parameters('accountType')]"
+            "name": "[parameters('accountType')]"
             },
-            "kind": "[parameters('kind')]",
-            "tags": {}
+            "kind": "[parameters('kind')]"
         },
         {
             "name": "[concat(parameters('storageAccountName'), '/default')]",
             "type": "Microsoft.Storage/storageAccounts/blobServices",
             "apiVersion": "2023-05-01",
+            "tags": "[parameters('resourceTags')]",
             "properties": {
-                "deleteRetentionPolicy": {
-                    "enabled": "[parameters('isBlobSoftDeleteEnabled')]",
-                    "days": "[parameters('blobSoftDeleteRetentionDays')]"
-                },
-                "containerDeleteRetentionPolicy": {
-                    "enabled": "[parameters('isContainerSoftDeleteEnabled')]",
-                    "days": "[parameters('containerSoftDeleteRetentionDays')]"
-                }
+            "deleteRetentionPolicy": {
+                "enabled": "[parameters('isBlobSoftDeleteEnabled')]",
+                "days": "[parameters('blobSoftDeleteRetentionDays')]"
+            },
+            "containerDeleteRetentionPolicy": {
+                "enabled": "[parameters('isContainerSoftDeleteEnabled')]",
+                "days": "[parameters('containerSoftDeleteRetentionDays')]"
+            }
             },
             "dependsOn": [
-                "[concat('Microsoft.Storage/storageAccounts/', parameters('storageAccountName'))]"
+            "[concat('Microsoft.Storage/storageAccounts/', parameters('storageAccountName'))]"
             ]
         },
         {
             "name": "[concat(parameters('storageAccountName'), '/default')]",
             "type": "Microsoft.Storage/storageAccounts/fileservices",
             "apiVersion": "2023-05-01",
+            "tags": "[parameters('resourceTags')]",
             "properties": {
-                "protocolSettings": null,
-                "shareDeleteRetentionPolicy": {
-                    "enabled": "[parameters('isShareSoftDeleteEnabled')]",
-                    "days": "[parameters('shareSoftDeleteRetentionDays')]"
-                }
+            "protocolSettings": null,
+            "shareDeleteRetentionPolicy": {
+                "enabled": "[parameters('isShareSoftDeleteEnabled')]",
+                "days": "[parameters('shareSoftDeleteRetentionDays')]"
+            }
             },
             "dependsOn": [
-                "[concat('Microsoft.Storage/storageAccounts/', parameters('storageAccountName'))]",
-                "[concat(concat('Microsoft.Storage/storageAccounts/', parameters('storageAccountName')), '/blobServices/default')]"
+            "[concat('Microsoft.Storage/storageAccounts/', parameters('storageAccountName'))]",
+            "[concat(concat('Microsoft.Storage/storageAccounts/', parameters('storageAccountName')), '/blobServices/default')]"
             ]
         }
     ],

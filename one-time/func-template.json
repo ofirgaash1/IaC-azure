@@ -71,6 +71,10 @@
                 "siteConfig": {
                     "appSettings": [
                         {
+                        "name": "TABLE_SERVICE_URI",
+                        "value": "[concat('https://', parameters('storageAccountName'), '.table.core.windows.net')]"
+                        },
+                        {
                             "name": "FUNCTIONS_EXTENSION_VERSION",
                             "value": "~4"
                         },
@@ -124,28 +128,44 @@
                 "serverFarmId": "[concat('/subscriptions/', parameters('subscriptionId'),'/resourcegroups/', parameters('serverFarmResourceGroup'), '/providers/Microsoft.Web/serverfarms/', parameters('hostingPlanName'))]"
             },
             "resources": [
-                {
-                    "type": "Microsoft.Web/sites/basicPublishingCredentialsPolicies",
-                    "apiVersion": "2022-09-01",
-                    "name": "[concat(parameters('name'), '/scm')]",
-                    "properties": {
-                        "allow": false
-                    },
-                    "dependsOn": [
-                        "[resourceId('Microsoft.Web/sites', parameters('name'))]"
-                    ]
-                },
-                {
-                    "type": "Microsoft.Web/sites/basicPublishingCredentialsPolicies",
-                    "apiVersion": "2022-09-01",
-                    "name": "[concat(parameters('name'), '/ftp')]",
-                    "properties": {
-                        "allow": false
-                    },
-                    "dependsOn": [
-                        "[resourceId('Microsoft.Web/sites', parameters('name'))]"
-                    ]
+            {
+                "type": "Microsoft.Authorization/roleAssignments",
+                "apiVersion": "2022-04-01",
+                "name": "[guid(parameters('storageAccountName'), 'StorageTableContributor')]",
+                "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+                ],
+                "properties": {
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b8e1-4c84-94b2-69abd3c13cc2')]",
+                "principalId": "5963b2ee-1312-4fd0-9b8c-769a1de5e6d8",
+                "principalType": "ServicePrincipal",
+                "scope": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
                 }
+            },
+            {
+                "type": "Microsoft.Web/sites/basicPublishingCredentialsPolicies",
+                "apiVersion": "2022-09-01",
+                "name": "[concat(parameters('name'), '/scm')]",
+                "tags": "[parameters('resourceTags')]",
+                "properties": {
+                "allow": false
+                },
+                "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', parameters('name'))]"
+                ]
+            },
+            {
+                "type": "Microsoft.Web/sites/basicPublishingCredentialsPolicies",
+                "apiVersion": "2022-09-01",
+                "name": "[concat(parameters('name'), '/ftp')]",
+                "tags": "[parameters('resourceTags')]",
+                "properties": {
+                "allow": false
+                },
+                "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', parameters('name'))]"
+                ]
+            }
             ],
             "identity": {
                 "type": "UserAssigned",
