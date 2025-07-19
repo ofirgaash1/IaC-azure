@@ -178,21 +178,6 @@
       "tags": "[parameters('resourceTags')]",
       "resources": [
         {
-          "type": "Microsoft.Authorization/roleAssignments",
-          "apiVersion": "2022-04-01",
-          "name": "[guid(parameters('storageAccountName'), 'StorageTableContributor')]",
-            "dependsOn": [
-            "[resourceId('Microsoft.Web/sites', parameters('name'))]",
-            "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
-            ],
-          "properties": {
-            "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b8e1-4c84-94b2-69abd3c13cc2')]",
-            "principalId": "5963b2ee-1312-4fd0-9b8c-769a1de5e6d8",
-            "principalType": "ServicePrincipal",
-            "scope": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
-          }
-        },
-        {
           "type": "Microsoft.Web/sites/basicPublishingCredentialsPolicies",
           "apiVersion": "2022-09-01",
           "name": "[concat(parameters('name'), '/scm')]",
