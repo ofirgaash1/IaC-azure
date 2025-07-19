@@ -1,6 +1,5 @@
 trigger:
-- master  # or your actual branch name
-
+- none 
 pool:
   vmImage: ubuntu-latest
 
