@@ -1,0 +1,46 @@
+trigger: none 
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  azureServiceConnection: 'OfirRG-Service-Connection'
+  resourceGroupName: 'Ofir-RG'
+  location: 'eastus'
+
+stages:
+- stage: DeployOneTimeResources
+  displayName: Deploy One-Time Resources
+  jobs:
+  - job: DeployStorageAccount
+    displayName: Deploy Table Storage
+    steps:
+    - task: AzureResourceManagerTemplateDeployment@3
+      displayName: Deploy table-template
+      inputs:
+        deploymentScope: 'Resource Group'
+        azureResourceManagerConnection: '$(azureServiceConnection)'
+        action: 'Create Or Update Resource Group'
+        resourceGroupName: '$(resourceGroupName)'
+        location: '$(location)'
+        templateLocation: 'Linked artifact'
+        csmFile: 'one-time/table-template.json'
+        csmParametersFile: 'one-time/table-parameters.json'
+        deploymentMode: 'Incremental'
+
+  - job: DeployFunctionApp
+    displayName: Deploy Function App
+    dependsOn: DeployStorageAccount
+    steps:
+    - task: AzureResourceManagerTemplateDeployment@3
+      displayName: Deploy func-template
+      inputs:
+        deploymentScope: 'Resource Group'
+        azureResourceManagerConnection: '$(azureServiceConnection)'
+        action: 'Create Or Update Resource Group'
+        resourceGroupName: '$(resourceGroupName)'
+        location: '$(location)'
+        templateLocation: 'Linked artifact'
+        csmFile: 'one-time/func-template.json'
+        csmParametersFile: 'one-time/func-parameters.json'
+        deploymentMode: 'Incremental'
