@@ -1,6 +1,6 @@
 import logging
 import azure.functions as func
-from azure.identity import DefaultAzureCredential
+from azure.identity import ManagedIdentityCredential
 from azure.data.tables import TableServiceClient, UpdateMode
 import os
 
@@ -12,12 +12,12 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     row_key = "MainPage"
 
     try:
-        credential = DefaultAzureCredential()
-        table_service = TableServiceClient(
+        credential = ManagedIdentityCredential()
+        service = TableServiceClient(
             endpoint=os.environ["TABLE_SERVICE_URI"],
             credential=credential
         )
-        table = table_service.get_table_client(table_name)
+        table = service.get_table_client(table_name)
 
         try:
             entity = table.get_entity(partition_key, row_key)
