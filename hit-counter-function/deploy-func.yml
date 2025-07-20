@@ -1,3 +1,5 @@
+name: 'deploy function and storage account' 
+
 trigger:
 - master
 

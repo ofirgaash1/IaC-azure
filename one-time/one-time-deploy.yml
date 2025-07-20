@@ -1,3 +1,5 @@
+name: 'Deploy One-Time' 
+
 trigger: none 
 
 pool:
