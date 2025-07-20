@@ -1,4 +1,4 @@
-name: 'deploy function and storage account' 
+name: 'deploy function' 
 
 trigger:
 - none
