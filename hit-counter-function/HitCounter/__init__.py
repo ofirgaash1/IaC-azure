@@ -1,7 +1,7 @@
 import logging
 import azure.functions as func
 from azure.identity import DefaultAzureCredential
-from azure.data.tables import TableServiceClient
+from azure.data.tables import TableServiceClient, UpdateMode
 import os
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
@@ -17,7 +17,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             endpoint=os.environ["TABLE_SERVICE_URI"],
             credential=credential
         )
-        table = service.get_table_client(table_name)
+        table = table_service.get_table_client(table_name)
 
         try:
             entity = table.get_entity(partition_key, row_key)
@@ -28,5 +28,5 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         table.upsert_entity(entity, mode=UpdateMode.REPLACE)
         return func.HttpResponse(str(entity["Count"]), status_code=200)
     except Exception as e:
-        logging.error(e)
+        logging.error(f"Error: {e}")
         return func.HttpResponse("Internal Server Error", status_code=500)
