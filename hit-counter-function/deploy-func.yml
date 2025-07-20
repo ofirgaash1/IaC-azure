@@ -1,7 +1,7 @@
 name: 'deploy function and storage account' 
 
 trigger:
-- master
+- none
 
 pool:
   vmImage: 'ubuntu-latest'

@@ -14,6 +14,7 @@ stages:
 - stage: DeployOneTimeResources
   displayName: Deploy One-Time Resources
   jobs:
+
   - job: DeployStorageAccount
     displayName: Deploy Table Storage
     steps:
@@ -45,4 +46,21 @@ stages:
         templateLocation: 'Linked artifact'
         csmFile: 'one-time/func-template.json'
         csmParametersFile: 'one-time/func-parameters.json'
+        deploymentMode: 'Incremental'
+
+  - job: DeployLogAnalytics
+    displayName: Deploy Log Analytics
+    dependsOn: DeployFunctionApp
+    steps:
+    - task: AzureResourceManagerTemplateDeployment@3
+      displayName: Deploy Log Analytics
+      inputs:
+        deploymentScope: 'Resource Group'
+        azureResourceManagerConnection: '$(azureServiceConnection)'
+        action: 'Create Or Update Resource Group'
+        resourceGroupName: '$(resourceGroupName)'
+        location: '$(location)'
+        templateLocation: 'Linked artifact'
+        csmFile: 'one-time/log-template.json'
+        csmParametersFile: 'one-time/log-parameters.json'
         deploymentMode: 'Incremental'
