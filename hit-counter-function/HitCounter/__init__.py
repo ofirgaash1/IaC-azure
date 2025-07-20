@@ -1,24 +1,26 @@
 import logging
 import azure.functions as func
-from azure.identity import ManagedIdentityCredential
+from azure.core.credentials import AzureNamedKeyCredential
 from azure.data.tables import TableServiceClient, UpdateMode
 import os
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Page hit function triggered.')
 
+    account_name = "ofirgaash"
+    account_key = os.environ["TABLE_ACCOUNT_KEY"]  # המפתח מתוך הגדרות הפונקציה
+
+    credential = AzureNamedKeyCredential(account_name, account_key)
+    table_service = TableServiceClient(
+        endpoint=f"https://{account_name}.table.core.windows.net",
+        credential=credential
+    )
     table_name = "PageHits"
     partition_key = "HitCounter"
     row_key = "MainPage"
 
     try:
-        credential = ManagedIdentityCredential()
-        service = TableServiceClient(
-            endpoint=os.environ["TABLE_SERVICE_URI"],
-            credential=credential
-        )
-        table = service.get_table_client(table_name)
-
+        table = table_service.get_table_client(table_name)
         try:
             entity = table.get_entity(partition_key, row_key)
             entity["Count"] += 1
