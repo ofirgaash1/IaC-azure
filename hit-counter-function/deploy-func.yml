@@ -1,0 +1,25 @@
+trigger:
+- master
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  azureServiceConnection: 'OfirRG-Service-Connection'
+  functionAppName: 'ofirFunc'
+  projectRoot: 'hit-counter-function'
+
+steps:
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: '3.12'
+    addToPath: true
+
+- task: AzureFunctionApp@1
+  displayName: 'Deploy Azure Function'
+  inputs:
+    azureSubscription: '$(azureServiceConnection)'
+    appType: 'functionAppLinux'
+    appName: '$(functionAppName)'
+    package: '$(projectRoot)'
+    deploymentMethod: 'runFromPackage'

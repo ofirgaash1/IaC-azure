@@ -1,7 +1,7 @@
 import logging
 import azure.functions as func
-from azure.data.tables import TableServiceClient, UpdateMode
 from azure.identity import DefaultAzureCredential
+from azure.data.tables import TableServiceClient
 import os
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
@@ -13,7 +13,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
     try:
         credential = DefaultAzureCredential()
-        service = TableServiceClient(
+        table_service = TableServiceClient(
             endpoint=os.environ["TABLE_SERVICE_URI"],
             credential=credential
         )
