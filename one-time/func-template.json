@@ -161,11 +161,12 @@
             {
               "name": "AzureWebJobsStorage",
               "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', parameters('storageAccountName'), ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2022-05-01').keys[0].value, ';EndpointSuffix=core.windows.net')]"
-            }
+            },
           ],
           "cors": {
             "allowedOrigins": [
-              "https://portal.azure.com"
+              "https://portal.azure.com",
+              "https://azure.ofirgaash.click"
             ]
           },
           "use32BitWorkerProcess": "[parameters('use32BitWorkerProcess')]",
