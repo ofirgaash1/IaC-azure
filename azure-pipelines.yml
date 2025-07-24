@@ -1,7 +1,7 @@
 name: 'Deploy VM and more' 
 
 trigger:
-- none 
+- NSG-VN-VM
 pool:
   vmImage: ubuntu-latest
 
