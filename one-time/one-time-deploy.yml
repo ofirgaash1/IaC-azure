@@ -1,6 +1,7 @@
 name: 'Deploy One-Time' 
 
-trigger: function-related-infra
+trigger: 
+- function-related-infra
 
 pool:
   vmImage: ubuntu-latest
