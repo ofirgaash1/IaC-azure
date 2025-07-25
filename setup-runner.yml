@@ -211,10 +211,16 @@
         enabled: yes
       tags: [runner]
 
-    - name: Add Docker GPG key & repo
+    - name: Add Docker GPG key
+      ansible.builtin.apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        keyring: /etc/apt/keyrings/docker.gpg
+        state: present
+      tags: [docker]
+
+    - name: Add Docker APT repository
       ansible.builtin.apt_repository:
         repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu {{ ansible_facts.lsb.codename }} stable"
-        key: https://download.docker.com/linux/ubuntu/gpg
         filename: docker
         update_cache: yes
       tags: [docker]
