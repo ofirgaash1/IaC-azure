@@ -180,25 +180,30 @@
       tags: [runner]
 
     - name: Configure GitHub runner (unattended)
-      ansible.builtin.command: >
-        {{ runner_dir }}/config.sh
-        --unattended --replace
-        --url {{ repo_url }}
-        --token {{ runner_token }}
-        --name {{ runner_name }}
-        --labels {{ runner_tag }}
+      ansible.builtin.command: ./config.sh --unattended --replace --url https://github.com/ofirgaash1/silence-remover --token "{{ runner_token }}" --name "{{ runner_name }}" --labels azure
       args:
-        chdir: "{{ runner_dir }}"
-        creates: "{{ runner_dir }}/.runner"
-      become_user: ofir
-      tags: [runner]
+        chdir: /home/ofir/actions-runner
 
     - name: Install GitHub Actions runner service
       become: yes
       ansible.builtin.command: ./svc.sh install
       args:
         chdir: /home/ofir/actions-runner
+        creates: "/etc/systemd/system/actions.runner.ofirgaash1-silence-remover.{{ runner_name }}.service"
 
+    - name: Reload systemd (if we just installed a new unit)
+      become: yes
+      ansible.builtin.systemd:
+        daemon_reload: true
+      when: ansible_command_create is defined  # only if install ran
+
+    - name: Ensure GitHub Actions runner service is started & enabled
+      become: yes
+      ansible.builtin.systemd:
+        name: "actions.runner.ofirgaash1-silence-remover.{{ runner_name }}.service"
+        state: started
+        enabled: true
+        
     - name: Start GitHub Actions runner service
       become: yes
       ansible.builtin.command: ./svc.sh start
