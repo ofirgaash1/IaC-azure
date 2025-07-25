@@ -40,17 +40,6 @@
       set_fact:
         runner_name: "runner-{{ ansible_hostname }}-{{ ansible_host }}"
 
-    - name: Remove existing GitHub Actions runner (non‑interactive)
-      become_user: ofir
-      args:
-        chdir: "{{ runner_dir }}"
-      shell: >
-        ./config.sh remove
-          --url {{ repo_url }}
-          --name {{ runner_name }}
-          --unattended
-      ignore_errors: yes
-
     - name: Stop runner service (if exists)
       args:
         chdir: "{{ runner_dir }}"
