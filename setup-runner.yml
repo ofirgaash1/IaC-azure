@@ -15,9 +15,6 @@
     github_pat: "{{ lookup('env','GITHUB_PAT') }}"
 
   pre_tasks:
-    # ────────────────────────────────────────────────────────
-    # 1) Remove any stale Docker APT lists/key before any apt-cache load
-    # ────────────────────────────────────────────────────────
     - name: Find old Docker APT source files
       ansible.builtin.find:
         paths: /etc/apt/sources.list.d
@@ -43,9 +40,6 @@
         state: directory
         mode: '0755'
 
-    # ────────────────────────────────────────────────────────
-    # 2) Install ACL + core APT tools (this will do a safe update_cache)
-    # ────────────────────────────────────────────────────────
     - name: Ensure ACL (setfacl) and core apt tools are installed
       ansible.builtin.apt:
         name:
@@ -126,8 +120,8 @@
           Authorization: "token {{ github_pat }}"
           Accept: "application/vnd.github.v3+json"
         return_content: yes
-        no_log: true
       register: runners_response
+      no_log: true
       tags: [runner]
 
     - name: Find existing runner in API response
@@ -150,8 +144,8 @@
           Authorization: "token {{ github_pat }}"
           Accept: "application/vnd.github.v3+json"
         status_code: 204
-        no_log: true
       when: existing_runner is defined
+      no_log: true
       tags: [runner]
 
     - name: Get GitHub runner registration token
@@ -163,8 +157,8 @@
           Accept: "application/vnd.github.v3+json"
         status_code: 201
         return_content: yes
-        no_log: true
       register: registration_token_response
+      no_log: true
       tags: [runner]
 
     - name: Set runner_token fact
