@@ -289,15 +289,19 @@
     - name: Restart GitHub Actions runner service
       become: yes
       block:
-        - name: Find runner service
+        - name: Find GitHub Actions runner service name
           ansible.builtin.shell: |
             systemctl list-units --type=service --no-pager --no-legend | awk '/actions\.runner.*\.service/ {print $1}'
           register: runner_service
           changed_when: false
 
-        - name: Restart runner
+        - name: Fail if no GitHub Actions runner was found
+          ansible.builtin.fail:
+            msg: "No GitHub Actions runner service found"
+          when: runner_service.stdout == ""
+
+        - name: Restart GitHub Actions runner
           ansible.builtin.systemd:
             name: "{{ runner_service.stdout }}"
             state: restarted
             enabled: true
-
