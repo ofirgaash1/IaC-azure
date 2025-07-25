@@ -286,8 +286,18 @@
       tags: [certbot]
 
   handlers:
-    - name: Restart runner service
-      ansible.builtin.systemd:
-        name: actions.runner.{{ runner_name }}
-        state: restarted
-        enabled: yes
+    - name: Restart GitHub Actions runner service
+      become: yes
+      block:
+        - name: Find runner service
+          ansible.builtin.shell: |
+            systemctl list-units --type=service --no-pager --no-legend | awk '/actions\.runner.*\.service/ {print $1}'
+          register: runner_service
+          changed_when: false
+
+        - name: Restart runner
+          ansible.builtin.systemd:
+            name: "{{ runner_service.stdout }}"
+            state: restarted
+            enabled: true
+
