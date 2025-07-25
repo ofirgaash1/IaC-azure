@@ -30,7 +30,7 @@
     },
     {
       "type": "Microsoft.Insights/components",
-      "apiVersion": "2015-05-01",
+      "apiVersion": "2020-02-02",
       "name": "[concat(parameters('name'), '-ai')]",
       "location": "[parameters('location')]",
       "kind": "web",
