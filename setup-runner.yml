@@ -79,12 +79,18 @@
         runner_name: "runner-{{ ansible_hostname }}-{{ ansible_host }}"
       tags: [runner]
 
+    - name: Check if runner service unit exists
+      ansible.builtin.stat:
+        path: "/etc/systemd/system/actions.runner.{{ runner_name }}.service"
+      register: runner_svc
+      tags: [runner]
+
     - name: Stop runner service if present
       ansible.builtin.systemd:
-        name: actions.runner.{{ runner_name }}
+        name: "actions.runner.{{ runner_name }}"
         state: stopped
         enabled: no
-      ignore_errors: yes
+      when: runner_svc.stat.exists
       tags: [runner]
 
     - name: Uninstall runner service if present
@@ -114,6 +120,12 @@
         url: "{{ runner_url }}"
         dest: "{{ runner_dir }}/actions-runner.tar.gz"
         mode: "0644"
+        force: no
+
+    - name: Check if runner is already extracted
+      ansible.builtin.stat:
+        path: "{{ runner_dir }}/bin/Runner.Listener"
+      register: runner_extracted
       tags: [runner]
 
     - name: Extract runner
@@ -123,6 +135,7 @@
         remote_src: yes
         owner: ofir
         group: ofir
+      when: not runner_extracted.stat.exists
       tags: [runner]
 
     - name: Get GitHub runners list
