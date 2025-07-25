@@ -129,13 +129,14 @@
       become_user: ofir
       args:
         chdir: "{{ runner_dir }}"
-      shell: >
-        ./config.sh
-          --url {{ repo_url }}
-          --token {{ runner_token }}
-          --labels {{ runner_tag }}
-          --name {{ runner_name }}
-          --unattended
+      command: >
+        {{ runner_dir }}/config.sh
+        --unattended
+        --replace
+        --url {{ repo_url }}
+        --token {{ runner_token }}
+        --name {{ runner_name }}
+        --labels {{ runner_tag }}
 
     - name: Install runner service
       args:
