@@ -121,7 +121,7 @@
       "value": "ofir"
     },
     "adminPublicKey": {
-      "value": "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW\nQyNTUxOQAAACA1pqMzshBKusdMsZTbMvhU3ee/Q90oupuYuC1AoJvpaAAAAJjhNLx84TS8\nfAAAAAtzc2gtZWQyNTUxOQAAACA1pqMzshBKusdMsZTbMvhU3ee/Q90oupuYuC1AoJvpaA\nAAAEAPCSRGmPHRZBmXj7siTd2NDv4zR76Vmr4VZUWPIt8fnTWmozOyEEq6x0yxlNsy+FTd\n579D3Si6m5i4LUCgm+loAAAAE29maXJnYWFzaEBnbWFpbC5jb20BAg==\n-----END OPENSSH PRIVATE KEY-----"
+      "value": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDWmozOyEEq6x0yxlNsy+FTd579D3Si6m5i4LUCgm+lo ofirgaash@gmail.com"
     },
     "enablePeriodicAssessment": {
       "value": "ImageDefault"
