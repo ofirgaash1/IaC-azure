@@ -14,28 +14,32 @@
     docker_gpg: "/etc/apt/keyrings/docker.gpg"
     github_pat: "{{ lookup('env', 'GITHUB_PAT') }}"
 
+  pre_tasks:
+    - name: Ensure ACL (setfacl) and core apt tools are installed
+      apt:
+        name:
+          - acl
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+          - software-properties-common
+        state: present
+        update_cache: yes
+
   tasks:
 
-    #––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––#
-    # 1. Ensure the "ofir" user exists (home, shell)                         #
-    #––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––#
     - name: Ensure user “ofir” exists
       user:
         name: ofir
         shell: /bin/bash
         create_home: yes
 
-    #––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––#
-    # 2. Compute unique runner_name                                          #
-    #––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––#
     - name: Set runner name
       set_fact:
         runner_name: "runner-{{ ansible_hostname }}-{{ ansible_host }}"
 
-    #––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––#
-    # 3. Unregister & clean up any existing runner installation              #
-    #    (non‑interactive removal, stop+uninstall service, remove directory) #
-    #––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––#
     - name: Remove existing GitHub Actions runner (non‑interactive)
       become_user: ofir
       args:
@@ -65,25 +69,6 @@
         state: absent
       ignore_errors: yes
 
-    #––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––#
-    # 4. Ensure apt prerequisites (for runner + Docker repo)                #
-    #––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––#
-    - name: Ensure apt prerequisites are installed
-      apt:
-        name:
-          - apt-transport-https
-          - ca-certificates
-          - curl
-          - gnupg
-          - lsb-release
-          - software-properties-common
-          - acl             
-        state: present
-        update_cache: yes
-
-    #––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––#
-    # 5. Create clean runner directory                                       #
-    #––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––#
     - name: Create runner directory
       file:
         path: "{{ runner_dir }}"
@@ -106,9 +91,6 @@
         owner: ofir
         group: ofir
 
-    #––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––#
-    # 6. Register & start the GitHub Actions runner                          #
-    #––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––#
     - name: Get GitHub runners list
       uri:
         url: "{{ repo_url | regex_replace('https://github.com/', 'https://api.github.com/repos/') }}/actions/runners"
@@ -176,9 +158,6 @@
         chdir: "{{ runner_dir }}"
       shell: ./svc.sh start
 
-    #––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––#
-    # 7. Add Docker repository and install Docker CE                        #
-    #––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––#
     - name: Ensure /etc/apt/keyrings exists
       file:
         path: /etc/apt/keyrings
@@ -214,9 +193,6 @@
         groups: docker
         append: yes
 
-    #––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––#
-    # 8. Create certbot volumes & obtain TLS certificate                   #
-    #––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––#
     - name: Create certbot Docker volumes
       community.docker.docker_volume:
         name: "{{ item }}"
