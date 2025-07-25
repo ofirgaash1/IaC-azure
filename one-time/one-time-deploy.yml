@@ -31,6 +31,18 @@ stages:
         csmFile: 'one-time/table-template.json'
         csmParametersFile: 'one-time/table-parameters.json'
         deploymentMode: 'Incremental'
+    
+    - task: AzureCLI@2
+      displayName: Create Table in Storage Account
+      inputs:
+        azureSubscription: '$(azureServiceConnection)'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          az storage table create \
+            --name PageHits \
+            --account-name ofirgaash \
+            --auth-mode login
 
   - job: DeployFunctionApp
     displayName: Deploy Function App
