@@ -7,8 +7,7 @@
   vars:
     runner_version: "2.327.0"
     runner_url: >-
-      https://github.com/actions/runner/releases/download/v{{ runner_version
-      }}/actions-runner-linux-x64-{{ runner_version }}.tar.gz
+      https://github.com/actions/runner/releases/download/v{{ runner_version }}/actions-runner-linux-x64-{{ runner_version }}.tar.gz
     runner_dir: "/home/ofir/actions-runner"
     repo_url: "https://github.com/ofirgaash1/silence-remover"
     runner_tag: "azure"
@@ -20,6 +19,8 @@
     github_repo: silence-remover
     git_dest: /home/ofir/traefik
     git_version: main
+    runner_name: "runner-{{ ansible_hostname }}-{{ ansible_host }}"
+    runner_service_file: "actions.runner.{{ github_owner }}-{{ github_repo }}.{{ runner_name }}.service"
 
   pre_tasks:
     - name: Find old Docker APT source files
@@ -383,11 +384,18 @@
         mode: "0660"
       tags: [docker]
 
+    - name: Check if runner service unit exists
+      ansible.builtin.stat:
+        path: "/etc/systemd/system/{{ runner_service_file }}"
+      register: runner_svc
+      tags: [runner]
+
     - name: Restart GitHub Actions runner service
       ansible.builtin.systemd:
-        name: "actions.runner.*.service"
+        name: "{{ runner_service_file }}"
         state: restarted
         enabled: true
+      when: runner_svc.stat.exists
       tags: [runner]
 
     # Ensure Certbot Docker volumes exist
