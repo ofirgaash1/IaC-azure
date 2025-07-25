@@ -306,6 +306,10 @@
         enabled: yes
       tags: [runner]
 
+    - name: Bootstrap Docker & Compose on the VM
+      ansible.builtin.script: path/to/bootstrap-docker.sh
+      tags: [docker]
+
     - name: Add Docker GPG key
       ansible.builtin.apt_key:
         url: https://download.docker.com/linux/ubuntu/gpg
@@ -339,15 +343,23 @@
         append: yes
       tags: [docker]
 
-    - name: Create certbot Docker volumes
+    # Ensure Certbot Docker volumes exist
+    - name: Create certbot-etc volume
       community.docker.docker_volume:
-        name: "{{ item }}"
-        state: present
-      loop:
-        - certbot-etc
-        - certbot-var
-      tags: [docker, certbot]
+        name: certbot-etc
 
+    - name: Create certbot-var volume
+      community.docker.docker_volume:
+        name: certbot-var
+
+    # Stop Traefik (or any HTTP server) so standalone can bind port 80
+    - name: Stop Traefik container if it exists
+      community.docker.docker_container:
+        name: traefik
+        state: stopped
+      ignore_errors: yes
+
+    # Obtain the cert once
     - name: Obtain TLS cert with certbot (standalone)
       ansible.builtin.command: >
         docker run --rm
@@ -364,5 +376,14 @@
             --email "{{ certbot_email }}"
       args:
         creates: "/var/lib/docker/volumes/certbot-etc/_data/live/{{ domain }}/fullchain.pem"
-      become_user: ofir
-      tags: [certbot]
+      become_user: "{{ runner_user }}"
+
+    # Restart Traefik, now with your certs in place
+    - name: Start Traefik with Docker Compose
+      community.docker.docker_container:
+        name: traefik
+        state: started
+        compose:
+          project_src: /path/to/traefik
+          files:
+            - docker-compose.traefik.yml
