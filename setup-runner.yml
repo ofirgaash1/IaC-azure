@@ -94,7 +94,6 @@
         accept_hostkey: yes
       become: yes
       become_user: "{{ runner_user }}"
-      no_log: true
       tags: [git, startup]
 
     - name: Ensure rc.local is present and correct
@@ -211,7 +210,6 @@
           Accept: "application/vnd.github.v3+json"
         return_content: yes
       register: runners_response
-      no_log: true
       tags: [runner]
 
     - name: Find existing runner in API response
@@ -234,8 +232,6 @@
           Authorization: "token {{ github_pat }}"
           Accept: "application/vnd.github.v3+json"
         status_code: 204
-      when: existing_runner is defined
-      no_log: true
       tags: [runner]
 
     - name: Get GitHub runner registration token
@@ -248,7 +244,6 @@
         status_code: 201
         return_content: yes
       register: registration_token_response
-      no_log: true
       tags: [runner]
 
     - name: Set runner_token fact
