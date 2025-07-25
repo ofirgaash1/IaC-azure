@@ -375,6 +375,21 @@
         append: yes
       tags: [docker]
 
+    - name: Ensure Docker socket is group‑writable
+      ansible.builtin.file:
+        path: /var/run/docker.sock
+        owner: root
+        group: docker
+        mode: "0660"
+      tags: [docker]
+
+    - name: Restart GitHub Actions runner service
+      ansible.builtin.systemd:
+        name: "actions.runner.*.service"
+        state: restarted
+        enabled: true
+      tags: [runner]
+
     # Ensure Certbot Docker volumes exist
     - name: Create certbot-etc volume
       community.docker.docker_volume:
