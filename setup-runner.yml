@@ -350,8 +350,8 @@
             --no-eff-email
             --standalone
             --preferred-challenges http
-            -d "{{ domain }}"
-            --email "{{ email }}"
+            -d "{{ azure.ofirgaash.click }}"
+            --email "{{ ofir.gaash@gmail.com }}"
       args:
         creates: "/var/lib/docker/volumes/certbot-etc/_data/live/{{ domain }}/fullchain.pem"
       become_user: ofir
