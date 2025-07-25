@@ -93,11 +93,17 @@
       when: runner_svc.stat.exists
       tags: [runner]
 
+    - name: Check if runner directory exists
+      ansible.builtin.stat:
+        path: "{{ runner_dir }}"
+      register: runner_dir_stat
+      tags: [runner]
+
     - name: Uninstall runner service if present
       ansible.builtin.command:
         cmd: ./svc.sh uninstall
         chdir: "{{ runner_dir }}"
-      ignore_errors: yes
+      when: runner_dir_stat.stat.isdir
       tags: [runner]
 
     - name: Remove any stale runner directory
@@ -332,20 +338,21 @@
         - certbot-var
       tags: [docker, certbot]
 
-    - name: Obtain TLS cert with certbot
+    - name: Obtain TLS cert with certbot (standalone)
       ansible.builtin.command: >
         docker run --rm
-        -v certbot-etc:/etc/letsencrypt
-        -v certbot-var:/var/lib/letsencrypt
-        certbot/certbot certonly
-        --non-interactive
-        --agree-tos
-        --no-eff-email
-        --webroot
-        --webroot-path /var/lib/letsencrypt
-        -d azure.ofirgaash.click
-        --email ofirgaash@gmail.com
+          --network host
+          -v certbot-etc:/etc/letsencrypt
+          -v certbot-var:/var/lib/letsencrypt
+          certbot/certbot certonly
+            --non-interactive
+            --agree-tos
+            --no-eff-email
+            --standalone
+            --preferred-challenges http
+            -d "{{ domain }}"
+            --email "{{ email }}"
       args:
-        creates: "/var/lib/docker/volumes/certbot-etc/_data/live/azure.ofirgaash.click/fullchain.pem"
+        creates: "/var/lib/docker/volumes/certbot-etc/_data/live/{{ domain }}/fullchain.pem"
       become_user: ofir
       tags: [certbot]
