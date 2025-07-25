@@ -223,9 +223,6 @@
             }
           }
         }
-      },
-      "placement": {
-        "zonePlacementPolicy": "Any"
       }
     }
   ],
