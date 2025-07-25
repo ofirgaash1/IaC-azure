@@ -1,22 +1,40 @@
-- name: Setup GitHub self‑hosted runner and Docker
+---
+- name: Setup GitHub self-hosted runner and Docker
   hosts: all
   become: yes
   gather_facts: yes
 
   vars:
     runner_version: "2.327.0"
-    runner_url: >-
-      https://github.com/actions/runner/releases/download/v{{ runner_version
-      }}/actions-runner-linux-x64-{{ runner_version }}.tar.gz
+    runner_url: "https://github.com/actions/runner/releases/download/v{{ runner_version }}/actions-runner-linux-x64-{{ runner_version }}.tar.gz"
     runner_dir: "/home/ofir/actions-runner"
     repo_url: "https://github.com/ofirgaash1/silence-remover"
     runner_tag: "azure"
-    docker_gpg: "/etc/apt/keyrings/docker.gpg"
-    github_pat: "{{ lookup('env', 'GITHUB_PAT') }}"
+    github_pat: "{{ lookup('env','GITHUB_PAT') }}"
 
   pre_tasks:
-    - name: Ensure ACL (setfacl) and core apt tools are installed
-      apt:
+    - name: Remove old Docker APT source files
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop: "{{ lookup('fileglob','/etc/apt/sources.list.d/docker*.list*', wantlist=True) }}"
+      tags: [docker]
+
+    - name: Remove old Docker keyfile
+      ansible.builtin.file:
+        path: /etc/apt/keyrings/docker.asc
+        state: absent
+      tags: [docker]
+
+    - name: Ensure /etc/apt/keyrings exists
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+      tags: [docker]
+
+    - name: Install ACL and core APT tools (no cache)
+      ansible.builtin.apt:
         name:
           - acl
           - apt-transport-https
@@ -26,92 +44,112 @@
           - lsb-release
           - software-properties-common
         state: present
+        update_cache: no
+      tags: [runner, docker]
+
+    - name: Refresh APT cache
+      ansible.builtin.apt:
         update_cache: yes
+      tags: [runner, docker]
+
 
   tasks:
-
     - name: Ensure user “ofir” exists
-      user:
+      ansible.builtin.user:
         name: ofir
         shell: /bin/bash
         create_home: yes
+      tags: [runner]
 
     - name: Set runner name
-      set_fact:
+      ansible.builtin.set_fact:
         runner_name: "runner-{{ ansible_hostname }}-{{ ansible_host }}"
+      tags: [runner]
 
-    - name: Stop runner service (if exists)
-      args:
-        chdir: "{{ runner_dir }}"
-      shell: ./svc.sh stop
+    - name: Stop runner service if present
+      ansible.builtin.systemd:
+        name: actions.runner.{{ runner_name }}
+        state: stopped
+        enabled: no
       ignore_errors: yes
+      tags: [runner]
 
-    - name: Uninstall runner service (if exists)
-      args:
+    - name: Uninstall runner service if present
+      ansible.builtin.command:
+        cmd: ./svc.sh uninstall
         chdir: "{{ runner_dir }}"
-      shell: ./svc.sh uninstall
       ignore_errors: yes
+      tags: [runner]
 
     - name: Remove any stale runner directory
-      file:
+      ansible.builtin.file:
         path: "{{ runner_dir }}"
         state: absent
-      ignore_errors: yes
+      tags: [runner]
 
     - name: Create runner directory
-      file:
+      ansible.builtin.file:
         path: "{{ runner_dir }}"
         state: directory
         owner: ofir
         group: ofir
         mode: '0755'
+      tags: [runner]
 
     - name: Download runner archive
-      get_url:
+      ansible.builtin.get_url:
         url: "{{ runner_url }}"
         dest: "{{ runner_dir }}/actions-runner.tar.gz"
         mode: '0644'
+      tags: [runner]
 
     - name: Extract runner
-      unarchive:
+      ansible.builtin.unarchive:
         src: "{{ runner_dir }}/actions-runner.tar.gz"
         dest: "{{ runner_dir }}"
         remote_src: yes
         owner: ofir
         group: ofir
+      tags: [runner]
 
     - name: Get GitHub runners list
-      uri:
+      ansible.builtin.uri:
         url: "{{ repo_url | regex_replace('https://github.com/', 'https://api.github.com/repos/') }}/actions/runners"
         method: GET
         headers:
           Authorization: "token {{ github_pat }}"
           Accept: "application/vnd.github.v3+json"
         return_content: yes
+        no_log: true
       register: runners_response
+      tags: [runner]
 
     - name: Find existing runner in API response
-      set_fact:
+      ansible.builtin.set_fact:
         existing_runner: >-
           {{ runners_response.json.runners
              | selectattr('name','equalto', runner_name)
              | list | first }}
-      when: runners_response.json.runners
-            | selectattr('name','equalto', runner_name)
-            | list | length > 0
+      when: >
+        runners_response.json.runners
+        | selectattr('name','equalto', runner_name)
+        | list | length > 0
+      tags: [runner]
 
-    - name: Delete existing runner from GitHub (API)
-      uri:
+    - name: Delete existing runner from GitHub
+      ansible.builtin.uri:
         url: "{{ repo_url | regex_replace('https://github.com/', 'https://api.github.com/repos/') }}/actions/runners/{{ existing_runner.id }}"
         method: DELETE
         headers:
           Authorization: "token {{ github_pat }}"
           Accept: "application/vnd.github.v3+json"
         status_code: 204
+        no_log: true
       when: existing_runner is defined
+      tags: [runner]
 
     - name: Get GitHub runner registration token
-      uri:
+      ansible.builtin.uri:
         url: "{{ repo_url | regex_replace('https://github.com/', 'https://api.github.com/repos/') }}/actions/runners/registration-token"
         method: POST
         headers:
@@ -119,80 +157,53 @@
           Accept: "application/vnd.github.v3+json"
         status_code: 201
         return_content: yes
+        no_log: true
       register: registration_token_response
+      tags: [runner]
 
     - name: Set runner_token fact
-      set_fact:
+      ansible.builtin.set_fact:
         runner_token: "{{ registration_token_response.json.token }}"
+      tags: [runner]
 
     - name: Configure GitHub runner (unattended)
-      become_user: ofir
-      args:
-        chdir: "{{ runner_dir }}"
-      command: >
+      ansible.builtin.command: >
         {{ runner_dir }}/config.sh
-        --unattended
-        --replace
+        --unattended --replace
         --url {{ repo_url }}
         --token {{ runner_token }}
         --name {{ runner_name }}
         --labels {{ runner_tag }}
+      args:
+        chdir: "{{ runner_dir }}"
+        creates: "{{ runner_dir }}/.runner"
+      become_user: ofir
+      tags: [runner]
+      notify: Restart runner service
 
     - name: Install runner service
-      args:
+      ansible.builtin.command:
+        cmd: ./svc.sh install
         chdir: "{{ runner_dir }}"
-      shell: ./svc.sh install
+      tags: [runner]
 
     - name: Start runner service
-      args:
-        chdir: "{{ runner_dir }}"
-      shell: ./svc.sh start
+      ansible.builtin.systemd:
+        name: actions.runner.{{ runner_name }}
+        state: started
+        enabled: yes
+      tags: [runner]
 
-
-    # -------------------------------------------------------------------
-    # Clean up any old Docker APT source lists or keyfiles so we cannot
-    # get a Signed-By conflict when we re-add them below.
-    # -------------------------------------------------------------------
-    - name: Find old Docker APT source files
-      find:
-        paths: /etc/apt/sources.list.d
-        patterns: "docker*.list*"
-        file_type: file
-      register: old_docker_lists
-
-    - name: Remove stale Docker APT source files
-      file:
-        path: "{{ item.path }}"
-        state: absent
-      loop: "{{ old_docker_lists.files }}"
-      when: old_docker_lists.matched > 0
-
-    - name: Remove old Docker keyfile (docker.asc)
-      file:
-        path: /etc/apt/keyrings/docker.asc
-        state: absent
-        
-    - name: Ensure /etc/apt/keyrings exists
-      file:
-        path: /etc/apt/keyrings
-        state: directory
-        mode: '0755'
-
-
-    - name: Add Docker GPG key
-      apt_key:
-        url: https://download.docker.com/linux/ubuntu/gpg
-        keyring: "{{ docker_gpg }}"
-        state: present
-
-    - name: Add Docker APT repository
-      apt_repository:
-        repo: "deb [arch=amd64 signed-by={{ docker_gpg }}] https://download.docker.com/linux/ubuntu {{ ansible_facts.lsb.codename }} stable"
+    - name: Add Docker GPG key & repo
+      ansible.builtin.apt_repository:
+        repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu {{ ansible_facts.lsb.codename }} stable"
+        key: https://download.docker.com/linux/ubuntu/gpg
         filename: docker
         update_cache: yes
+      tags: [docker]
 
     - name: Install Docker packages
-      apt:
+      ansible.builtin.apt:
         name:
           - docker-ce
           - docker-ce-cli
@@ -200,13 +211,15 @@
           - docker-buildx-plugin
           - docker-compose-plugin
         state: present
-        update_cache: yes
+        update_cache: no
+      tags: [docker]
 
     - name: Add “ofir” to docker group
-      user:
+      ansible.builtin.user:
         name: ofir
         groups: docker
         append: yes
+      tags: [docker]
 
     - name: Create certbot Docker volumes
       community.docker.docker_volume:
@@ -215,20 +228,29 @@
       loop:
         - certbot-etc
         - certbot-var
+      tags: [docker, certbot]
 
     - name: Obtain TLS cert with certbot
-      become_user: ofir
-      shell: |
-        docker run --rm \
-          -v certbot-etc:/etc/letsencrypt \
-          -v certbot-var:/var/lib/letsencrypt \
-          certbot/certbot certonly \
-            --non-interactive \
-            --webroot \
-            --webroot-path /var/lib/letsencrypt \
-            -d azure.ofirgaash.click \
-            --email ofirgaash@gmail.com \
-            --agree-tos \
-            --no-eff-email
+      ansible.builtin.command: >
+        docker run --rm
+        -v certbot-etc:/etc/letsencrypt
+        -v certbot-var:/var/lib/letsencrypt
+        certbot/certbot certonly
+        --non-interactive
+        --agree-tos
+        --no-eff-email
+        --webroot
+        --webroot-path /var/lib/letsencrypt
+        -d azure.ofirgaash.click
+        --email ofirgaash@gmail.com
       args:
         creates: "/var/lib/docker/volumes/certbot-etc/_data/live/azure.ofirgaash.click/fullchain.pem"
+      become_user: ofir
+      tags: [certbot]
+
+  handlers:
+    - name: Restart runner service
+      ansible.builtin.systemd:
+        name: actions.runner.{{ runner_name }}
+        state: restarted
+        enabled: yes
