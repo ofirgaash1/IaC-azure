@@ -1,6 +1,7 @@
 - name: Setup GitHub self-hosted runner and Docker
   hosts: all
   become: yes
+  gather_facts: yes
 
   vars:
     runner_version: "2.327.0"
@@ -9,30 +10,64 @@
     repo_url: "https://github.com/ofirgaash1/silence-remover"
     runner_tag: "azure"
     docker_gpg: "/etc/apt/keyrings/docker.asc"
-    github_pat: "{{ lookup('env', 'GITHUB_PAT') }}"  # או להעביר עם extra-vars
+    github_pat: "{{ lookup('env', 'GITHUB_PAT') }}"
 
   tasks:
+
+    - name: Set runner name
+      set_fact:
+        runner_name: "runner-{{ ansible_hostname }}-{{ ansible_host }}"
+
+    - name: Get GitHub runners list
+      uri:
+        url: "{{ repo_url | regex_replace('https://github.com/', 'https://api.github.com/repos/') }}/actions/runners"
+        method: GET
+        headers:
+          Authorization: "token {{ github_pat }}"
+          Accept: "application/vnd.github.v3+json"
+        return_content: yes
+      register: runners_response
+
+    - name: Find existing runner ID
+      set_fact:
+        existing_runner: >-
+          {{ runners_response.json.runners | selectattr('name', 'equalto', runner_name) | list | first }}
+      when: runners_response.json.runners | selectattr('name', 'equalto', runner_name) | list | length > 0
+
+    - name: Delete existing runner from GitHub
+      uri:
+        url: "{{ repo_url | regex_replace('https://github.com/', 'https://api.github.com/repos/') }}/actions/runners/{{ existing_runner.id }}"
+        method: DELETE
+        headers:
+          Authorization: "token {{ github_pat }}"
+          Accept: "application/vnd.github.v3+json"
+        status_code: 204
+      when: existing_runner is defined
+
+    - name: Stop runner service (if exists)
+      args:
+        chdir: "{{ runner_dir }}"
+      shell: ./svc.sh stop
+      ignore_errors: yes
+
+    - name: Uninstall runner service (if exists)
+      args:
+        chdir: "{{ runner_dir }}"
+      shell: ./svc.sh uninstall
+      ignore_errors: yes
+
+    - name: Remove runner configuration (if exists)
+      become_user: ofir
+      args:
+        chdir: "{{ runner_dir }}"
+      shell: ./config.sh remove
+      ignore_errors: yes
 
     - name: Ensure dependencies are installed
       apt:
         name: [curl, ca-certificates]
         state: present
         update_cache: yes
-
-    - name: Get GitHub runner registration token
-      uri:
-        url: "https://api.github.com/repos/ofirgaash1/silence-remover/actions/runners/registration-token"
-        method: POST
-        headers:
-          Authorization: "token {{ github_pat }}"
-          Accept: "application/vnd.github.v3+json"
-        status_code: 201
-        return_content: yes
-      register: registration_token_response
-
-    - name: Set runner_token fact
-      set_fact:
-        runner_token: "{{ registration_token_response.json.token }}"
 
     - name: Create runner directory
       file:
@@ -56,12 +91,28 @@
         owner: ofir
         group: ofir
 
+    - name: Get GitHub runner registration token
+      uri:
+        url: "{{ repo_url | regex_replace('https://github.com/', 'https://api.github.com/repos/') }}/actions/runners/registration-token"
+        method: POST
+        headers:
+          Authorization: "token {{ github_pat }}"
+          Accept: "application/vnd.github.v3+json"
+        status_code: 201
+        return_content: yes
+      register: registration_token_response
+
+    - name: Set runner_token fact
+      set_fact:
+        runner_token: "{{ registration_token_response.json.token }}"
+
     - name: Configure GitHub runner
       become_user: ofir
       args:
         chdir: "{{ runner_dir }}"
       shell: >
-        ./config.sh --url {{ repo_url }} --token {{ runner_token }} --labels {{ runner_tag }} --unattended
+        ./config.sh --url {{ repo_url }} --token {{ runner_token }}
+        --labels {{ runner_tag }} --name {{ runner_name }} --unattended
 
     - name: Install runner service
       args:
@@ -104,7 +155,7 @@
         groups: docker
         append: yes
 
-    - name: Activate new docker group (newgrp docker)
+    - name: Refresh group membership for 'ofir'
       become_user: ofir
       shell: newgrp docker
 
