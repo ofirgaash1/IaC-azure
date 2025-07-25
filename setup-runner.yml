@@ -286,7 +286,7 @@
       tags: [certbot]
 
   handlers:
-    - name: Restart GitHub Actions runner service
+    - name: Restart runner service
       become: yes
       block:
         - name: Find GitHub Actions runner service name
