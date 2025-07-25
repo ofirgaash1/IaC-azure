@@ -99,11 +99,19 @@
       register: runner_dir_stat
       tags: [runner]
 
+    - name: Check if svc.sh exists
+      ansible.builtin.stat:
+        path: "{{ runner_dir }}/svc.sh"
+      register: svc_sh_stat
+      tags: [runner]
+
     - name: Uninstall runner service if present
       ansible.builtin.command:
         cmd: ./svc.sh uninstall
         chdir: "{{ runner_dir }}"
-      when: runner_dir_stat.stat.isdir
+      when:
+        - runner_dir_stat.stat.isdir
+        - svc_sh_stat.stat.exists
       tags: [runner]
 
     - name: Remove any stale runner directory
