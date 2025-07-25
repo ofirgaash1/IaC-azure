@@ -40,7 +40,8 @@
         state: directory
         mode: '0755'
 
-    - name: Ensure ACL (setfacl) and core apt tools are installed
+    - name: Ensure ACL and apt-related tools are installed
+      become: yes
       ansible.builtin.apt:
         name:
           - acl
@@ -52,6 +53,19 @@
           - software-properties-common
         state: present
         update_cache: yes
+
+    - name: Ensure pip3 is installed
+      become: yes
+      ansible.builtin.apt:
+        name: python3-pip
+        state: present
+
+    - name: Ensure Docker SDK for Python is installed
+      become: yes
+      ansible.builtin.pip:
+        name: docker
+        executable: pip3
+
 
   tasks:
     - name: Ensure user “ofir” exists
