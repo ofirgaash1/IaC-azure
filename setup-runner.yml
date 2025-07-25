@@ -180,9 +180,19 @@
       tags: [runner]
 
     - name: Configure GitHub runner (unattended)
-      ansible.builtin.command: ./config.sh --unattended --replace --url https://github.com/ofirgaash1/silence-remover --token "{{ runner_token }}" --name "{{ runner_name }}" --labels azure
+      ansible.builtin.command: >
+        ./config.sh
+        --unattended
+        --replace
+        --url https://github.com/ofirgaash1/silence-remover
+        --token "{{ runner_token }}"
+        --name "{{ runner_name }}"
+        --labels azure
       args:
         chdir: /home/ofir/actions-runner
+      become: no               # <— ensure this runs as the SSH user (ofir)
+      become_user: "{{ ansible_user_id }}"
+
 
     - name: Install GitHub Actions runner service
       become: yes
