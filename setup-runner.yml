@@ -432,5 +432,4 @@
             tag: "{{ tag_to_deploy }}"
         body_format: json
         status_code: 204
-      no_log: true
       tags: [deploy]
