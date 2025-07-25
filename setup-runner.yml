@@ -74,6 +74,29 @@
         executable: pip3
 
   tasks:
+
+    - name: Ensure rc.local is present and correct
+      ansible.builtin.copy:
+        dest: /etc/rc.local
+        owner: root
+        group: root
+        mode: '0755'
+        content: |
+          #!/bin/bash
+
+          # Navigate to the repo directory and pull latest changes
+          cd /home/ofir/silence-remover || exit 1
+          /usr/bin/git pull
+
+          # Run deploy script from user's home
+          /bin/bash /home/ofir/silence-remover/deploy-container.sh
+
+          # Append timestamp to rc.local log
+          echo "$(date '+%Y-%m-%d %H:%M:%S') - rc.local executed" >> /var/log/rc.local.log
+
+          exit 0
+      tags: [startup]
+      
     - name: Ensure user “ofir” exists
       ansible.builtin.user:
         name: ofir
@@ -392,13 +415,22 @@
       become_user: "{{ runner_user }}"
       tags: [cert]
 
-    # Restart Traefik, now with your certs in place
-    - name: Start Traefik with Docker Compose
-      community.docker.docker_container:
-        name: traefik
-        state: started
-        compose:
-          project_src: /path/to/traefik
-          files:
-            - docker-compose.traefik.yml
-    
+    - name: Trigger GitHub Actions repo_dispatch to deploy-on-vm
+      vars:
+        repo_owner: ofirgaash1
+        repo_name: silence-remover
+        tag_to_deploy: "{{ IMAGE_TAG }}"      # set earlier from your pipeline context
+      ansible.builtin.uri:
+        url: "https://api.github.com/repos/{{ repo_owner }}/{{ repo_name }}/dispatches"
+        method: POST
+        headers:
+          Accept: application/vnd.github.v3+json
+          Authorization: "token {{ lookup('env','GITHUB_TOKEN') }}"
+        body:
+          event_type: "trigger-deploy"
+          client_payload:
+            tag: "{{ tag_to_deploy }}"
+        body_format: json
+        status_code: 204
+      no_log: true
+      tags: [deploy]
