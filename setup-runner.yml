@@ -139,9 +139,7 @@
       ansible.builtin.command:
         cmd: ./svc.sh uninstall
         chdir: "{{ runner_dir }}"
-      when:
-        - runner_dir_stat.stat.isdir
-        - svc_sh_stat.stat.exists
+      when: svc_sh_stat.stat.exists
       tags: [runner]
 
     - name: Remove any stale runner directory
