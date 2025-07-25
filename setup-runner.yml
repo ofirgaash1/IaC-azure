@@ -187,9 +187,26 @@
         chdir: "{{ runner_dir }}"
       tags: [runner]
 
-    - name: Start runner service
+    - name: Reload systemd daemon
       ansible.builtin.systemd:
-        name: actions.runner.{{ runner_name }}
+        daemon_reload: yes
+      tags: [runner]
+
+    - name: Discover GitHub runner unit file
+      ansible.builtin.find:
+        paths: /etc/systemd/system
+        patterns: "actions.runner*.service"
+      register: runner_units
+      tags: [runner]
+
+    - name: Set the runner service name
+      ansible.builtin.set_fact:
+        runner_service: "{{ runner_units.files[0].path | basename | regex_replace('\\.service$','') }}"
+      tags: [runner]
+
+    - name: Start & enable runner service
+      ansible.builtin.systemd:
+        name: "{{ runner_service }}"
         state: started
         enabled: yes
       tags: [runner]
