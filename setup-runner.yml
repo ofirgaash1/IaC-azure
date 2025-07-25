@@ -148,17 +148,37 @@
         chdir: "{{ runner_dir }}"
       shell: ./svc.sh start
 
+
+    # -------------------------------------------------------------------
+    # Clean up any old Docker APT source lists or keyfiles so we cannot
+    # get a Signed-By conflict when we re-add them below.
+    # -------------------------------------------------------------------
+    - name: Find old Docker APT source files
+      find:
+        paths: /etc/apt/sources.list.d
+        patterns: "docker*.list*"
+        file_type: file
+      register: old_docker_lists
+
+    - name: Remove stale Docker APT source files
+      file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ old_docker_lists.files }}"
+      when: old_docker_lists.matched > 0
+
+    - name: Remove old Docker keyfile (docker.asc)
+      file:
+        path: /etc/apt/keyrings/docker.asc
+        state: absent
+        
     - name: Ensure /etc/apt/keyrings exists
       file:
         path: /etc/apt/keyrings
         state: directory
         mode: '0755'
 
-    - name: Remove old Docker APT source list (if present)
-      file:
-        path: /etc/apt/sources.list.d/docker.list
-        state: absent
-        
+
     - name: Add Docker GPG key
       apt_key:
         url: https://download.docker.com/linux/ubuntu/gpg
