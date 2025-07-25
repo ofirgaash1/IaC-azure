@@ -18,7 +18,7 @@
     github_owner: ofirgaash1
     github_repo: silence-remover
     git_dest: /home/ofir/traefik
-    git_version: main
+    git_version: master
     runner_name: "runner-{{ ansible_hostname }}-{{ ansible_host }}"
     runner_service_file: "actions.runner.{{ github_owner }}-{{ github_repo }}.{{ runner_name }}.service"
 
