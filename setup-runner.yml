@@ -419,7 +419,7 @@
       vars:
         repo_owner: ofirgaash1
         repo_name: silence-remover
-        tag_to_deploy: "{{ IMAGE_TAG }}"      # set earlier from your pipeline context
+        tag_to_deploy: "latest"      # set earlier from your pipeline context
       ansible.builtin.uri:
         url: "https://api.github.com/repos/{{ repo_owner }}/{{ repo_name }}/dispatches"
         method: POST
