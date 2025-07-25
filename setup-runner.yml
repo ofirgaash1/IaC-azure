@@ -425,7 +425,7 @@
         method: POST
         headers:
           Accept: application/vnd.github.v3+json
-          Authorization: "token {{ lookup('env','GITHUB_TOKEN') }}"
+          Authorization: "token {{ github_pat }}"
         body:
           event_type: "trigger-deploy"
           client_payload:
