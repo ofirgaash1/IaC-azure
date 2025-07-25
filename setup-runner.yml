@@ -1,48 +1,51 @@
-- name: Setup GitHub self-hosted runner and Docker
+- name: Setup GitHub self‑hosted runner and Docker
   hosts: all
   become: yes
   gather_facts: yes
 
   vars:
     runner_version: "2.327.0"
-    runner_url: "https://github.com/actions/runner/releases/download/v{{ runner_version }}/actions-runner-linux-x64-{{ runner_version }}.tar.gz"
+    runner_url: >-
+      https://github.com/actions/runner/releases/download/v{{ runner_version
+      }}/actions-runner-linux-x64-{{ runner_version }}.tar.gz
     runner_dir: "/home/ofir/actions-runner"
     repo_url: "https://github.com/ofirgaash1/silence-remover"
     runner_tag: "azure"
-    docker_gpg: "/etc/apt/keyrings/docker.asc"
+    docker_gpg: "/etc/apt/keyrings/docker.gpg"
     github_pat: "{{ lookup('env', 'GITHUB_PAT') }}"
 
   tasks:
 
+    #––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––#
+    # 1. Ensure the "ofir" user exists (home, shell)                         #
+    #––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––#
+    - name: Ensure user “ofir” exists
+      user:
+        name: ofir
+        shell: /bin/bash
+        create_home: yes
+
+    #––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––#
+    # 2. Compute unique runner_name                                          #
+    #––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––#
     - name: Set runner name
       set_fact:
         runner_name: "runner-{{ ansible_hostname }}-{{ ansible_host }}"
 
-    - name: Get GitHub runners list
-      uri:
-        url: "{{ repo_url | regex_replace('https://github.com/', 'https://api.github.com/repos/') }}/actions/runners"
-        method: GET
-        headers:
-          Authorization: "token {{ github_pat }}"
-          Accept: "application/vnd.github.v3+json"
-        return_content: yes
-      register: runners_response
-
-    - name: Find existing runner ID
-      set_fact:
-        existing_runner: >-
-          {{ runners_response.json.runners | selectattr('name', 'equalto', runner_name) | list | first }}
-      when: runners_response.json.runners | selectattr('name', 'equalto', runner_name) | list | length > 0
-
-    - name: Delete existing runner from GitHub
-      uri:
-        url: "{{ repo_url | regex_replace('https://github.com/', 'https://api.github.com/repos/') }}/actions/runners/{{ existing_runner.id }}"
-        method: DELETE
-        headers:
-          Authorization: "token {{ github_pat }}"
-          Accept: "application/vnd.github.v3+json"
-        status_code: 204
-      when: existing_runner is defined
+    #––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––#
+    # 3. Unregister & clean up any existing runner installation              #
+    #    (non‑interactive removal, stop+uninstall service, remove directory) #
+    #––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––#
+    - name: Remove existing GitHub Actions runner (non‑interactive)
+      become_user: ofir
+      args:
+        chdir: "{{ runner_dir }}"
+      shell: >
+        ./config.sh remove
+          --url {{ repo_url }}
+          --name {{ runner_name }}
+          --unattended
+      ignore_errors: yes
 
     - name: Stop runner service (if exists)
       args:
@@ -56,19 +59,30 @@
       shell: ./svc.sh uninstall
       ignore_errors: yes
 
-    - name: Remove runner configuration (if exists)
-      become_user: ofir
-      args:
-        chdir: "{{ runner_dir }}"
-      shell: ./config.sh remove
+    - name: Remove any stale runner directory
+      file:
+        path: "{{ runner_dir }}"
+        state: absent
       ignore_errors: yes
 
-    - name: Ensure dependencies are installed
+    #––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––#
+    # 4. Ensure apt prerequisites (for runner + Docker repo)                #
+    #––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––#
+    - name: Ensure apt prerequisites are installed
       apt:
-        name: [curl, ca-certificates]
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+          - software-properties-common
         state: present
         update_cache: yes
 
+    #––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––#
+    # 5. Create clean runner directory                                       #
+    #––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––#
     - name: Create runner directory
       file:
         path: "{{ runner_dir }}"
@@ -91,6 +105,39 @@
         owner: ofir
         group: ofir
 
+    #––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––#
+    # 6. Register & start the GitHub Actions runner                          #
+    #––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––#
+    - name: Get GitHub runners list
+      uri:
+        url: "{{ repo_url | regex_replace('https://github.com/', 'https://api.github.com/repos/') }}/actions/runners"
+        method: GET
+        headers:
+          Authorization: "token {{ github_pat }}"
+          Accept: "application/vnd.github.v3+json"
+        return_content: yes
+      register: runners_response
+
+    - name: Find existing runner in API response
+      set_fact:
+        existing_runner: >-
+          {{ runners_response.json.runners
+             | selectattr('name','equalto', runner_name)
+             | list | first }}
+      when: runners_response.json.runners
+            | selectattr('name','equalto', runner_name)
+            | list | length > 0
+
+    - name: Delete existing runner from GitHub (API)
+      uri:
+        url: "{{ repo_url | regex_replace('https://github.com/', 'https://api.github.com/repos/') }}/actions/runners/{{ existing_runner.id }}"
+        method: DELETE
+        headers:
+          Authorization: "token {{ github_pat }}"
+          Accept: "application/vnd.github.v3+json"
+        status_code: 204
+      when: existing_runner is defined
+
     - name: Get GitHub runner registration token
       uri:
         url: "{{ repo_url | regex_replace('https://github.com/', 'https://api.github.com/repos/') }}/actions/runners/registration-token"
@@ -106,13 +153,17 @@
       set_fact:
         runner_token: "{{ registration_token_response.json.token }}"
 
-    - name: Configure GitHub runner
+    - name: Configure GitHub runner (unattended)
       become_user: ofir
       args:
         chdir: "{{ runner_dir }}"
       shell: >
-        ./config.sh --url {{ repo_url }} --token {{ runner_token }}
-        --labels {{ runner_tag }} --name {{ runner_name }} --unattended
+        ./config.sh
+          --url {{ repo_url }}
+          --token {{ runner_token }}
+          --labels {{ runner_tag }}
+          --name {{ runner_name }}
+          --unattended
 
     - name: Install runner service
       args:
@@ -124,19 +175,26 @@
         chdir: "{{ runner_dir }}"
       shell: ./svc.sh start
 
-    - name: Add Docker GPG key
-      shell: |
-        install -m 0755 -d /etc/apt/keyrings
-        curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o {{ docker_gpg }}
-        chmod a+r {{ docker_gpg }}
+    #––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––#
+    # 7. Add Docker repository and install Docker CE                        #
+    #––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––#
+    - name: Ensure /etc/apt/keyrings exists
+      file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
 
-    - name: Add Docker repository
-      apt_repository:
-        repo: >
-          deb [arch=amd64 signed-by={{ docker_gpg }}] https://download.docker.com/linux/ubuntu
-          {{ ansible_facts.lsb.codename }} stable
+    - name: Add Docker GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        keyring: "{{ docker_gpg }}"
         state: present
+
+    - name: Add Docker APT repository
+      apt_repository:
+        repo: "deb [arch=amd64 signed-by={{ docker_gpg }}] https://download.docker.com/linux/ubuntu {{ ansible_facts.lsb.codename }} stable"
         filename: docker
+        update_cache: yes
 
     - name: Install Docker packages
       apt:
@@ -149,31 +207,36 @@
         state: present
         update_cache: yes
 
-    - name: Add 'ofir' user to docker group
+    - name: Add “ofir” to docker group
       user:
         name: ofir
         groups: docker
         append: yes
 
-    - name: Refresh group membership for 'ofir'
-      become_user: ofir
-      shell: newgrp docker
+    #––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––#
+    # 8. Create certbot volumes & obtain TLS certificate                   #
+    #––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––#
+    - name: Create certbot Docker volumes
+      community.docker.docker_volume:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - certbot-etc
+        - certbot-var
 
-    - name: Create Docker volumes for certbot
-      shell: |
-        docker volume create certbot-etc
-        docker volume create certbot-var
-
-    - name: Run certbot container
+    - name: Obtain TLS cert with certbot
       become_user: ofir
       shell: |
-        docker run -it --rm \
+        docker run --rm \
           -v certbot-etc:/etc/letsencrypt \
           -v certbot-var:/var/lib/letsencrypt \
-          certbot/certbot \
-          certonly --webroot \
-          --webroot-path /var/lib/letsencrypt \
-          -d azure.ofirgaash.click \
-          --email ofirgaash@gmail.com \
-          --agree-tos \
-          --no-eff-email
+          certbot/certbot certonly \
+            --non-interactive \
+            --webroot \
+            --webroot-path /var/lib/letsencrypt \
+            -d azure.ofirgaash.click \
+            --email ofirgaash@gmail.com \
+            --agree-tos \
+            --no-eff-email
+      args:
+        creates: "/var/lib/docker/volumes/certbot-etc/_data/live/azure.ofirgaash.click/fullchain.pem"
