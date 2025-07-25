@@ -13,6 +13,8 @@
     repo_url: "https://github.com/ofirgaash1/silence-remover"
     runner_tag: "azure"
     github_pat: "{{ lookup('env','GITHUB_PAT') }}"
+    domain: "azure.ofirgaash.click"
+    certbot_email: "ofirgaash@gmail.com"
 
   pre_tasks:
     - name: Find old Docker APT source files
@@ -358,8 +360,8 @@
             --no-eff-email
             --standalone
             --preferred-challenges http
-            -d "{{ azure.ofirgaash.click }}"
-            --email "{{ ofir.gaash@gmail.com }}"
+            -d "{{ domain }}"
+            --email "{{ certbot_email }}"
       args:
         creates: "/var/lib/docker/volumes/certbot-etc/_data/live/{{ domain }}/fullchain.pem"
       become_user: ofir
