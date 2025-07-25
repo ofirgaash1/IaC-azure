@@ -306,10 +306,16 @@
         enabled: yes
       tags: [runner]
 
-    - name: Bootstrap Docker & Compose on the VM
-      ansible.builtin.script: path/to/bootstrap-docker.sh
+    - name: Install Docker prerequisites
+      apt:
+        update_cache: yes
+        name:
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
       tags: [docker]
-
+      
     - name: Add Docker GPG key
       ansible.builtin.apt_key:
         url: https://download.docker.com/linux/ubuntu/gpg
