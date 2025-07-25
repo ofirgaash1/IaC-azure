@@ -193,6 +193,18 @@
       become_user: ofir
       tags: [runner]
 
+    - name: Install GitHub Actions runner service
+      become: yes
+      ansible.builtin.command: ./svc.sh install
+      args:
+        chdir: /home/ofir/actions-runner
+
+    - name: Start GitHub Actions runner service
+      become: yes
+      ansible.builtin.command: ./svc.sh start
+      args:
+        chdir: /home/ofir/actions-runner
+
     - name: Find GitHub Actions runner service name
       become: yes
       ansible.builtin.shell: |
@@ -301,24 +313,3 @@
         creates: "/var/lib/docker/volumes/certbot-etc/_data/live/azure.ofirgaash.click/fullchain.pem"
       become_user: ofir
       tags: [certbot]
-
-  handlers:
-    - name: Restart runner service
-      become: yes
-      block:
-        - name: Find GitHub Actions runner service name
-          ansible.builtin.shell: |
-            systemctl list-units --type=service --no-pager --no-legend | awk '/actions\.runner.*\.service/ {print $1}'
-          register: runner_service
-          changed_when: false
-
-        - name: Fail if no GitHub Actions runner was found
-          ansible.builtin.fail:
-            msg: "No GitHub Actions runner service found"
-          when: runner_service.stdout == ""
-
-        - name: Restart GitHub Actions runner
-          ansible.builtin.systemd:
-            name: "{{ runner_service.stdout }}"
-            state: restarted
-            enabled: true
