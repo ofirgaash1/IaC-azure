@@ -2,6 +2,9 @@
     "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
+        "logAnalyticsName": {
+            "value": "ofir-Log-Analytics-workspace"
+        },
         "subscriptionId": {
             "value": "90fc6700-8099-40ee-9c9e-c4dcd47abb5f"
         },

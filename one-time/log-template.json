@@ -1,32 +1,52 @@
 {
-    "$schema": "http://schema.management.azure.com/schemas/2014-04-01-preview/deploymentTemplate.json#",
-    "contentVersion": "1.0.0.0",
-    "parameters": {
-        "name": {
-            "type": "string"
-        },
-        "location": {
-            "type": "string"
-        },
-        "sku": {
-            "type": "string"
-        },
-        "tags": {
-            "type": "object"
-        }
+  "$schema": "http://schema.management.azure.com/schemas/2014-04-01-preview/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "name": {
+      "type": "string"
     },
-    "resources": [
-        {
-            "apiVersion": "2017-03-15-preview",
-            "name": "[parameters('name')]",
-            "location": "[parameters('location')]",
-            "tags": "[parameters('tags')]",
-            "type": "Microsoft.OperationalInsights/workspaces",
-            "properties": {
-                "sku": {
-                    "name": "[parameters('sku')]"
-                }
-            }
+    "location": {
+      "type": "string"
+    },
+    "sku": {
+      "type": "string"
+    },
+    "tags": {
+      "type": "object"
+    }
+  },
+  "resources": [
+    {
+      "apiVersion": "2015-11-01-preview",
+      "name": "[parameters('name')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "type": "Microsoft.OperationalInsights/workspaces",
+      "properties": {
+        "sku": {
+          "name": "[parameters('sku')]"
         }
-    ]
+      }
+    },
+    {
+      "type": "Microsoft.Insights/components",
+      "apiVersion": "2015-05-01",
+      "name": "[concat(parameters('name'), '-ai')]",
+      "location": "[parameters('location')]",
+      "kind": "web",
+      "dependsOn": [
+        "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('name'))]"
+      ],
+      "properties": {
+        "Application_Type": "web",
+        "WorkspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('name'))]"
+      }
+    }
+  ],
+  "outputs": {
+    "appInsightsConnectionString": {
+      "type": "string",
+      "value": "[reference(concat(parameters('name'), '-ai'), '2020-02-02').ConnectionString]"
+    }
+  }
 }

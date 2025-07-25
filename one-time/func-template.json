@@ -8,6 +8,9 @@
         "Type": "one-time"
       }
     },
+    "logAnalyticsName": {
+      "type": "string"
+    },
     "subscriptionId": {
       "type": "string"
     },
@@ -118,6 +121,10 @@
         "name": "[parameters('name')]",
         "siteConfig": {
           "appSettings": [
+            {
+              "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
+              "value": "[reference(resourceId('Microsoft.Insights/components', concat(parameters('logAnalyticsName'), '-ai')), '2020-02-02').ConnectionString]"
+            },
             {
               "name": "TABLE_SERVICE_URI",
               "value": "[concat('https://', parameters('storageAccountName'), '.table.core.windows.net')]"
