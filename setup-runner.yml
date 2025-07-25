@@ -239,10 +239,18 @@
         state: restarted
         enabled: true
 
+    - name: Check for existing service file
+      ansible.builtin.stat:
+        path: "/etc/systemd/system/actions.runner.ofirgaash1-silence-remover.{{ runner_name }}.service"
+      register: svc_file
+      tags: [runner]
+
     - name: Install runner service
-      ansible.builtin.command:
-        cmd: ./svc.sh install
+      become: yes
+      ansible.builtin.command: ./svc.sh install
+      args:
         chdir: "{{ runner_dir }}"
+      when: not svc_file.stat.exists
       tags: [runner]
 
     - name: Reload systemd daemon
