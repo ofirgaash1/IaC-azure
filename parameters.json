@@ -11,7 +11,6 @@
     "tagOwner": {
       "value": "test"
     },
-
     "networkSecurityGroupName": {
       "value": "ofirVM-nsg"
     },
@@ -65,7 +64,9 @@
       "value": "ofirVM-vnet"
     },
     "addressPrefixes": {
-      "value": ["10.0.0.0/16"]
+      "value": [
+        "10.0.0.0/16"
+      ]
     },
     "subnets": {
       "value": [
@@ -120,7 +121,7 @@
       "value": "ofir"
     },
     "adminPublicKey": {
-      "value": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDO+400JqUSctyfuU/0rvHhDKddiYTg+UMD74J9YDpPkgZ0ZjIC4OedVL4BTlUaLWB0bePKf2vmBsO5DTtRMTS6sTvg17+qQPf8D6Z7XVOdMqD99Dq0Dyp2d3pVKBs4h7HW1MLHi3apXT9uTdUQZhVQ0VAkd8jT3VUAingJ5Sn8C2//W7kSTP7b14MQt+hQupL4V4eOLA1CriJMiKR5jl18Qqb/CWehnpAwpbMQUuiUaO8vgy6OjHqe88Xl8Eus9qB5pstBDPOMY84wiloQFFvy4vMvaob+sFeabo9OBaWdJte1+ky28ziIsVJLTXqZZ7cWIXTVm2lKorpUggEEffyJVGu4vNb8k9sM3E19ppsAULCzV2s6eZ20jNgEfDC6LhD2zMrWw4hW8yMIOSF8Q5VsHBbZ3ss3txQMk2icTw+i3r0HYrmxOJItZCjZRVBWv0l/vK/gwXOk/JlXMgCl7hEc9L4trcg04hQFrwTSCScya+HpoPRN6cZ5qcovzK+J7O0= ofir@ofir-Latitude-7420"
+      "value": "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW\nQyNTUxOQAAACA1pqMzshBKusdMsZTbMvhU3ee/Q90oupuYuC1AoJvpaAAAAJjhNLx84TS8\nfAAAAAtzc2gtZWQyNTUxOQAAACA1pqMzshBKusdMsZTbMvhU3ee/Q90oupuYuC1AoJvpaA\nAAAEAPCSRGmPHRZBmXj7siTd2NDv4zR76Vmr4VZUWPIt8fnTWmozOyEEq6x0yxlNsy+FTd\n579D3Si6m5i4LUCgm+loAAAAE29maXJnYWFzaEBnbWFpbC5jb20BAg==\n-----END OPENSSH PRIVATE KEY-----"
     },
     "enablePeriodicAssessment": {
       "value": "ImageDefault"
