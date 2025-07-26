@@ -117,6 +117,7 @@
 
           exit 0
       tags: [startup]
+
     - name: Persist GitHub PAT for deploy scripts
       ansible.builtin.copy:
         dest: /etc/github-deploy.env
@@ -275,88 +276,28 @@
       become: no               # <— ensure this runs as the SSH user (ofir)
       become_user: "{{ ansible_user_id }}"
 
-
-    - name: Install GitHub Actions runner service
-      become: yes
-      ansible.builtin.command: ./svc.sh install
-      args:
-        chdir: /home/ofir/actions-runner
-        creates: "/etc/systemd/system/actions.runner.ofirgaash1-silence-remover.{{ runner_name }}.service"
-
-    - name: Reload systemd (if we just installed a new unit)
-      become: yes
-      ansible.builtin.systemd:
-        daemon_reload: true
-      when: ansible_command_create is defined  # only if install ran
-
-    - name: Ensure GitHub Actions runner service is started & enabled
-      become: yes
-      ansible.builtin.systemd:
-        name: "actions.runner.ofirgaash1-silence-remover.{{ runner_name }}.service"
-        state: started
-        enabled: true
-        
-    - name: Start GitHub Actions runner service
-      become: yes
-      ansible.builtin.command: ./svc.sh start
-      args:
-        chdir: /home/ofir/actions-runner
-
-    - name: Find GitHub Actions runner service name
-      become: yes
-      ansible.builtin.shell: |
-        systemctl list-units --type=service --no-pager --no-legend | awk '/actions\.runner.*\.service/ {print $1}'
-      register: runner_service
-      changed_when: false
-
-    - name: Fail if no GitHub Actions runner was found
-      ansible.builtin.fail:
-        msg: "No GitHub Actions runner service found"
-      when: runner_service.stdout == ""
-
-    - name: Restart GitHub Actions runner
-      become: yes
-      ansible.builtin.systemd:
-        name: "{{ runner_service.stdout }}"
-        state: restarted
-        enabled: true
-
-    - name: Check for existing service file
-      ansible.builtin.stat:
-        path: "/etc/systemd/system/actions.runner.ofirgaash1-silence-remover.{{ runner_name }}.service"
-      register: svc_file
-      tags: [runner]
-
-    - name: Install runner service
+    - name: Install GitHub Actions runner service if missing
       become: yes
       ansible.builtin.command: ./svc.sh install
       args:
         chdir: "{{ runner_dir }}"
-      when: not svc_file.stat.exists
+        creates: "/etc/systemd/system/{{ runner_service_file }}"
+      register: svc_install
       tags: [runner]
 
-    - name: Reload systemd daemon
+    - name: Reload systemd if we just installed the runner unit
+      become: yes
       ansible.builtin.systemd:
-        daemon_reload: yes
+        daemon_reload: true
+      when: svc_install.changed
       tags: [runner]
 
-    - name: Discover GitHub runner unit file
-      ansible.builtin.find:
-        paths: /etc/systemd/system
-        patterns: "actions.runner*.service"
-      register: runner_units
-      tags: [runner]
-
-    - name: Set the runner service name
-      ansible.builtin.set_fact:
-        runner_service: "{{ runner_units.files[0].path | basename | regex_replace('\\.service$','') }}"
-      tags: [runner]
-
-    - name: Start & enable runner service
+    - name: Ensure GitHub Actions runner service is installed & running
+      become: yes
       ansible.builtin.systemd:
-        name: "{{ runner_service }}"
+        name: "{{ runner_service_file }}"
         state: started
-        enabled: yes
+        enabled: true
       tags: [runner]
 
     - name: Install Docker prerequisites
@@ -410,20 +351,6 @@
         mode: "0660"
       tags: [docker]
 
-    - name: Check if runner service unit exists
-      ansible.builtin.stat:
-        path: "/etc/systemd/system/{{ runner_service_file }}"
-      register: runner_svc
-      tags: [runner]
-
-    - name: Restart GitHub Actions runner service
-      ansible.builtin.systemd:
-        name: "{{ runner_service_file }}"
-        state: restarted
-        enabled: true
-      when: runner_svc.stat.exists
-      tags: [runner]
-
     # Ensure Certbot Docker volumes exist
     - name: Create certbot-etc volume
       community.docker.docker_volume:
@@ -434,7 +361,7 @@
       community.docker.docker_volume:
         name: certbot-var
 
-    # Stop Traefik (or any HTTP server) so standalone can bind port 80
+    # Stop Traefik so standalone can bind port 80
     - name: Stop Traefik container if it exists
       community.docker.docker_container:
         name: traefik
